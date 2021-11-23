@@ -6,10 +6,13 @@ data Side = Left | Right
 integers :: Line Integer
 integers = Line [-1, -2] 0 [1, 2]
 
+integers2 :: Line Integer
+integers2 = Line [-10, -9] (-8) [-7, -6]
+
 -- | Keep up to a given number of elements in each direction in a line. 
 -- cutLine 3 integers = Line [-1,-2,-3] 0 [1,2,3]
 cutLine :: Int -> Line a -> Line a
-cutLine n (Line a b c) = Line (take n a) b (take n c)
+cutLine n (Line l f r) = Line (take n l) f (take n r)
 
 
 -- | Generate a line by using generating functions.
@@ -135,12 +138,35 @@ startState n = Line (replicate n Dead) Alive (replicate n Dead)
 -- where each element is a (horizontal) line. 
 data Space a = Space (Line (Line a)) deriving (Show)
 
+-- | Returns a cartesian product of two lines as a 2D Space
 productOfLines :: Line a -> Line b -> Space (a, b)
 productOfLines (Line l1 f1 r1) (Line l2 f2 r2) = Space (Line left focus right)
   where
     left = map (\l -> Line (l2 >>= \e -> [(l, e)]) (l, f2) (r2 >>= \e -> [(l, e)])) l1
     focus = Line (l2 >>= \e -> [(f1, e)]) (f1, f2) (r2 >>= \e -> [(f1, e)])
     right = map (\r -> Line (l2 >>= \e -> [(r, e)]) (r, f2) (r2 >>= \e -> [(r, e)])) r1
+
+-- | Maps given function to every element of space
+mapSpace :: (a -> b) -> Space a -> Space b
+mapSpace func (Space (Line l f r)) = Space (Line newL newF newR)
+  where
+    newL = map (mapLine func) l
+    newF = mapLine func f
+    newR = map (mapLine func) r
+    
+zipSpaces :: Space a -> Space b -> Space (a, b)
+zipSpaces (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Line newL newF newR))
+  where 
+    newL = zipWith zipLines l1 l2
+    newF = zipLines f1 f2
+    newR = zipWith zipLines r1 r2
+   
+zipSpacesWith :: (a -> b -> c) -> Space a -> Space b -> Space c
+zipSpacesWith func (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Line newL newF newR))
+  where 
+    newL = zipWith (zipLinesWith func) l1 l2
+    newF = zipLinesWith func f1 f2
+    newR = zipWith (zipLinesWith func) r1 r2
 
 main :: IO()
 main = --drawingOf (renderRule30 500 (startState 500) )
@@ -154,6 +180,6 @@ main = --drawingOf (renderRule30 500 (startState 500) )
   --print(shiftRight integers)
   --print(zipLinesWith (*) integers integers)
 --  print(lineShifts integers)
-  --print(productOfLines2 integers integers)
-    print(productOfLines integers integers)
+--    print(productOfLines integers integers)
+  print(zipSpaces (productOfLines integers integers2) (productOfLines integers2 integers))
 --  print("Hello")
