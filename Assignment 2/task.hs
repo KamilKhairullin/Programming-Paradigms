@@ -128,10 +128,25 @@ applyRule30 line = mapLine rule30 (lineShifts line)
 startState :: Int -> Line Cell
 startState n = Line (replicate n Dead) Alive (replicate n Dead)
 
+-- 1.3 Discrete spaces
+
+-- | A descrete 2D space with a focus.
+-- A 2D space is merely a (vertical) line
+-- where each element is a (horizontal) line. 
+data Space a = Space (Line (Line a)) deriving (Show)
+
+productOfLines :: Line a -> Line b -> Space (a, b)
+productOfLines (Line l1 f1 r1) (Line l2 f2 r2) = Space (Line left focus right)
+  where
+    left = map (\l -> Line (l2 >>= \e -> [(l, e)]) (l, f2) (r2 >>= \e -> [(l, e)])) l1
+    focus = Line (l2 >>= \e -> [(f1, e)]) (f1, f2) (r2 >>= \e -> [(f1, e)])
+    right = map (\r -> Line (l2 >>= \e -> [(r, e)]) (r, f2) (r2 >>= \e -> [(r, e)])) r1
+
 main :: IO()
-main = drawingOf (renderRule30 500 (startState 500) )
---  do
-  --print(applyRule30 (Line (deadCellsList 10) Alive (deadCellsList 10)))
+main = --drawingOf (renderRule30 500 (startState 500) )
+  do
+    --print(test integers integers)
+--print(applyRule30 (Line (deadCellsList 10) Alive (deadCellsList 10)))
   --print(integers)
   --print(cutLine 3 integers)
   --print(mapLine (^2) integers)
@@ -139,4 +154,6 @@ main = drawingOf (renderRule30 500 (startState 500) )
   --print(shiftRight integers)
   --print(zipLinesWith (*) integers integers)
 --  print(lineShifts integers)
+  --print(productOfLines2 integers integers)
+    print(productOfLines integers integers)
 --  print("Hello")
