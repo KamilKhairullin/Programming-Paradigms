@@ -69,7 +69,7 @@ lineShifts line = Line leftShift line rightShift
         
 data Cell = Alive | Dead deriving (Show)
   
-  
+-- | All states of rule30 
 states :: Cell -> Cell -> Cell -> Cell
 states Dead Dead Dead = Dead
 states Dead Dead Alive = Alive
@@ -93,16 +93,20 @@ renderLine (Line a b c) = left <> b <> right
     left = renderArray a Main.Left
     right = renderArray c Main.Right
 
--- | Renders array of Pictures 
+-- | Renders array of Pictures to single Picture
 renderArray :: [Picture] -> Side -> Picture
 renderArray (x:xs) Main.Left = translated (-1) 0  (x <> renderArray xs Main.Left)
 renderArray (x:xs) Main.Right = translated 1 0 (x <> renderArray xs Main.Right)
 renderArray [] _ = blank
 
+-- | Translates cell to Picture
+-- Alive is black
+-- Dead is grey
 cellToPicture :: Cell -> Picture
 cellToPicture Alive = (colored black (solidRectangle 1 1))
 cellToPicture Dead = (colored grey (solidRectangle 1 1))
 
+-- | Translates line of cells to line of Pictures
 cellLineToPicture :: Line Cell -> Line Picture
 cellLineToPicture line = mapLine (\x -> cellToPicture x) line
 
@@ -121,11 +125,11 @@ renderRule30 n line
 applyRule30 :: Line Cell -> Line Cell
 applyRule30 line = mapLine rule30 (lineShifts line)
 
-deadCellsList :: Int -> [Cell]
-deadCellsList n = replicate n Dead
+startState :: Int -> Line Cell
+startState n = Line (replicate n Dead) Alive (replicate n Dead)
 
 main :: IO()
-main = drawingOf (renderRule30 10 (Line (deadCellsList 10) Alive (deadCellsList 10)))
+main = drawingOf (renderRule30 500 (startState 500) )
 --  do
   --print(applyRule30 (Line (deadCellsList 10) Alive (deadCellsList 10)))
   --print(integers)
