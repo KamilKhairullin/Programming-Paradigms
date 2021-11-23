@@ -1,12 +1,10 @@
 import CodeWorld
 
 data Line a = Line [a] a [a] deriving (Show)
+data Side = Left | Right
 
 integers :: Line Integer
 integers = Line [-1, -2] 0 [1, 2]
-
-forceUnwrap :: Maybe a -> a
-forceUnwrap (Just a) = a
 
 -- | Keep up to a given number of elements in each direction in a line. 
 -- cutLine 3 integers = Line [-1,-2,-3] 0 [1,2,3]
@@ -47,6 +45,28 @@ zipLines (Line a b c) (Line d e f) = Line (zip a d) (b, e) (zip c f)
 zipLinesWith :: (a -> b -> c) -> Line a -> Line b -> Line c
 zipLinesWith func (Line a b c) (Line d e f) = Line (zipWith func a d) (func b e) (zipWith func c f)
 
+-- | Shfis the focus to one position left
+-- shiftLeft integers = Just (Line [-2,-3,-4,-5,..] (-1) [0,1,2,3,4,5,..])
+shiftLeft  :: Line a -> Maybe (Line a)
+shiftLeft (Line (x:xs) b c) = Just (Line xs x (b:c)) 
+shiftLeft (Line [] _ _) = Nothing
+
+-- | Shfis the focus to one position right
+--shiftRight integers = Just (Line [0,-1,-2,-3,-4,-5] 1 [2,3,4,5])
+shiftRight  :: Line a -> Maybe (Line a)
+shiftRight (Line b c (x:xs)) = Just (Line (c:b) x xs)
+shiftRight (Line _ _ []) = Nothing
+
+
+-- | An entire line of different focus shifts for given Line
+-- lineShifts integers = Line [Line [] (-2) [-1,0,1,2],Line [-2] (-1) [0,1,2]] (Line [-1,-2] 0 [1,2]) [Line [0,-1,-2] 1 [2],Line [1,0,-1,-2] 2 []]
+lineShifts :: Line a -> Line (Line a)
+lineShifts line = Line leftShift line rightShift
+  where
+    leftShift = genList shiftLeft line
+    rightShift = genList shiftRight line
+
+        
 data Cell = Alive | Dead deriving (Show)
   
   
@@ -66,43 +86,53 @@ rule30 (Line [] x (y:ys)) = states Dead x y
 rule30 (Line (y:ys) x []) = states y x Dead
 rule30 (Line (y:ys) x (z:zs)) = states y x z
 
+-- | Render a line of 1x1 pictures.
+renderLine :: Line Picture -> Picture
+renderLine (Line a b c) = left <> b <> right
+  where
+    left = renderArray a Main.Left
+    right = renderArray c Main.Right
+
+-- | Renders array of Pictures 
+renderArray :: [Picture] -> Side -> Picture
+renderArray (x:xs) Main.Left = translated (-1) 0  (x <> renderArray xs Main.Left)
+renderArray (x:xs) Main.Right = translated 1 0 (x <> renderArray xs Main.Right)
+renderArray [] _ = blank
+
+cellToPicture :: Cell -> Picture
+cellToPicture Alive = (colored black (solidRectangle 1 1))
+cellToPicture Dead = (colored grey (solidRectangle 1 1))
+
+cellLineToPicture :: Line Cell -> Line Picture
+cellLineToPicture line = mapLine (\x -> cellToPicture x) line
+
+
+-- | Render the fist N steps of Rule 30,
+-- applied to a given starting line. 
+renderRule30 :: Int -> Line Cell -> Picture
+renderRule30 n line
+  | n > 0 = currentLinePicture <> translated 0 (-1) (renderRule30 (n - 1) newLine)
+  | otherwise = renderLine (cellLineToPicture line)
+  where
+    currentLinePicture = renderLine (cellLineToPicture line)
+    newLine = applyRule30 line
+
 -- | Applies rule30 to each cell of line
 applyRule30 :: Line Cell -> Line Cell
 applyRule30 line = mapLine rule30 (lineShifts line)
 
--- | Shfis the focus to one position left
--- shiftLeft integers = Just (Line [-2,-3,-4,-5,..] (-1) [0,1,2,3,4,5,..])
-shiftLeft  :: Line a -> Maybe (Line a)
-shiftLeft (Line (x:xs) b c) = Just (Line xs x (b:c)) 
-shiftLeft (Line [] _ _) = Nothing
+deadCellsList :: Int -> [Cell]
+deadCellsList n = replicate n Dead
 
--- | Shfis the focus to one position right
---shiftRight integers = Just (Line [0,-1,-2,-3,-4,-5] 1 [2,3,4,5])
-shiftRight  :: Line a -> Maybe (Line a)
-shiftRight (Line b c (x:xs)) = Just (Line (c:b) x xs)
-shiftRight (Line _ _ []) = Nothing
-
-
--- | An entire line of different focus shifts for given Line
--- lineShifts integers = Line [Line [] (-2) [-1,0,1,2],Line [-2] (-1) [0,1,2]] (Line [-1,-2] 0 [1,2]) [Line [0,-1,-2] 1 [2],Line [1,0,-1,-2] 2 []]
-lineShifts :: Line a -> Line (Line a)
-lineShifts line = Line leftShift line rightShift
-  where
-    leftShift = reverse (genList shiftLeft line)
-    rightShift = genList shiftRight line
-
--- | Render a line of 1x1 pictures.
-renderLine :: Line Picture -> Picture
--- | Render the fist N steps of Rule 30,
--- applied to a given starting line. renderRule30 :: Int -> Line Cell -> Picture
-    
 main :: IO()
-main = do
+main = drawingOf (renderRule30 10 (Line (deadCellsList 10) Alive (deadCellsList 10)))
+--  do
+  --print(applyRule30 (Line (deadCellsList 10) Alive (deadCellsList 10)))
   --print(integers)
   --print(cutLine 3 integers)
   --print(mapLine (^2) integers)
   --print(zipLines integers integers)
   --print(shiftRight integers)
   --print(zipLinesWith (*) integers integers)
-  print(lineShifts integers)
-  print("Hello")
+--  print(lineShifts integers)
+--  print("Hello")
