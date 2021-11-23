@@ -1,5 +1,5 @@
 import CodeWorld
-
+import Data.Maybe ( mapMaybe )
 data Line a = Line [a] a [a] deriving (Show)
 data Side = Left | Right
 
@@ -168,9 +168,66 @@ zipSpacesWith func (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Lin
     newF = zipLinesWith func f1 f2
     newR = zipWith (zipLinesWith func) r1 r2
 
+-- 1.4 Game of Life
+conwayRule :: Space Cell -> Cell
+conwayRule space = nextState cell (countAliveAround space)
+  where
+    Space(Line _ (Line _ cell _) _) = space
+    
+    nextState :: Cell -> Int -> Cell
+    nextState Dead 3 = Alive
+    nextState Dead _ = Dead
+    nextState Alive 2 = Alive
+    nextState Alive 3 = Alive
+    nextState Alive _ = Dead
+        
+    isAlive :: Cell -> Int
+    isAlive Alive = 1
+    isAlive Dead = 0
+
+    numberOfNeighborsOnLine :: Line Cell -> Int
+    numberOfNeighborsOnLine (Line (p:_) f (n:_)) = isAlive p + isAlive f + isAlive n
+    
+    countAliveAround :: Space Cell -> Int
+    countAliveAround (Space (Line (topLine:_) (Line (prevCell:_) f (nextCell:_)) (botLine:_))) = answer
+      where
+        answer = numberOfNeighborsOnLine topLine + numberOfNeighborsOnLine botLine + isAlive prevCell + isAlive nextCell
+
+
+
+spaceShiftLeft  :: Space a -> Maybe (Space a)
+spaceShiftLeft (Space (Line (x:xs) b c)) = Just (Space (Line xs x (b:c))) 
+spaceShiftLeft (Space (Line [] _ _)) = Nothing
+
+spaceShiftRight  :: Space a -> Maybe (Space a)
+spaceShiftRight (Space (Line b c (x:xs))) = Just (Space (Line (c:b) x xs))
+spaceShiftRight (Space (Line _ _ [])) = Nothing
+
+spaceLineShift :: Space a -> Line (Space a)
+spaceLineShift (Space (Line l f r)) = (Line left focus right)
+  where
+    leftShifts = genList shiftLeft f
+    rightShifts = genList shiftRight f
+    left = map (\shift -> Space(Line l shift r)) leftShifts
+    focus = Space(Line l f r)
+    right = map (\shift -> Space(Line l shift r)) rightShifts
+
+spaceShifts :: Space a -> Space (Space a)
+spaceShifts space = Space (Line l f r)
+  where
+    leftShift = genList spaceShiftLeft space
+    rightShift = genList spaceShiftRight space
+    l = map (\sp -> spaceLineShift sp) leftShift
+    f = spaceLineShift space
+    r = map (\sp -> spaceLineShift sp) rightShift
+    
+applyConwayRule :: Space Cell -> Space Cell
+applyConwayRule space = mapSpace conwayRule (spaceShifts space)
+
+renderSpace :: Space Picture -> Picture
+
 main :: IO()
-main = --drawingOf (renderRule30 500 (startState 500) )
-  do
+main = drawingOf (renderRule30 500 (startState 500) )
     --print(test integers integers)
 --print(applyRule30 (Line (deadCellsList 10) Alive (deadCellsList 10)))
   --print(integers)
@@ -181,5 +238,5 @@ main = --drawingOf (renderRule30 500 (startState 500) )
   --print(zipLinesWith (*) integers integers)
 --  print(lineShifts integers)
 --    print(productOfLines integers integers)
-  print(zipSpaces (productOfLines integers integers2) (productOfLines integers2 integers))
+  --print(zipSpaces (productOfLines integers integers2) (productOfLines integers2 integers))
 --  print("Hello")
