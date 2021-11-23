@@ -164,15 +164,14 @@ mapSpace func (Space (Line l f r)) = Space (Line newL newF newR)
     newL = map (mapLine func) l
     newF = mapLine func f
     newR = map (mapLine func) r
--- | Zip together two spaces as (a, b)
+    
 zipSpaces :: Space a -> Space b -> Space (a, b)
 zipSpaces (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Line newL newF newR))
   where 
     newL = zipWith zipLines l1 l2
     newF = zipLines f1 f2
     newR = zipWith zipLines r1 r2
-
--- | Zip together two spaces with given function.
+   
 zipSpacesWith :: (a -> b -> c) -> Space a -> Space b -> Space c
 zipSpacesWith func (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Line newL newF newR))
   where 
@@ -180,8 +179,7 @@ zipSpacesWith func (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Lin
     newF = zipLinesWith func f1 f2
     newR = zipWith (zipLinesWith func) r1 r2
 
--- 1.4 Game of Life ------------------------------------------------------------
-
+-- 1.4 Game of Life
 conwayRule :: Space Cell -> Cell
 conwayRule space = nextState cell (countAliveAround space)
   where
@@ -293,12 +291,11 @@ startConwayLine4 = Line (replicate 11 Dead) Dead (replicate 11 Dead)
 startConway :: Space Cell
 startConway = (Space (Line (startConwayLine1 : (replicate 10 startConwayLine4)) startConwayLine2 (startConwayLine3 : (replicate 10 startConwayLine4))))
 
-
 startState :: Int -> Line Cell
 startState n = Line (replicate n Dead) Alive (replicate n Dead)
 
 startRule30 :: IO()
-startRule30 = drawingOf (renderRule30 100 (startState 100) )
+startRule30 = drawingOf (renderRule30 500 (startState 500) )
 
 main :: IO()
 main = do
@@ -312,21 +309,15 @@ main = do
   print("Task 1.4:")
   print(zipLines integers integers)
   print(zipLinesWith (*) integers integers)
-  -- task 1.6
-  print("Task 1.6")
-  print(shiftRight integers)
-  -- task 1.7
-  print("Task 1.7")
-  print(lineShifts integers)
   -- task 1.8
-  --startRule30
-  -- task 1.9
-  print("Task 1.9")
-  print(productOfLines integers integers)
-  -- task 1.10
-  print("Task 1.10. zipSpaces")
-  print(zipSpaces (productOfLines integers integers) (productOfLines integers integers))
+  startRule30
   
+--print(shiftRight integers)
+--  print(lineShifts integers)
+--    print(productOfLines integers integers)
+  --print(zipSpaces (productOfLines integers integers2) (productOfLines integers2 integers))
+--
+
 --animateConway startConway
 --drawingOf (renderRule30 500 (startState 500) )
     --print(test integers integers)
