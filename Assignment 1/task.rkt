@@ -93,5 +93,26 @@
     [else expr]
     ))
     
-                                   
 
+; Exercise 1.4
+
+; Simplifies any expression down to a poly- nomial of its variables.
+;(define (normalize expr))
+
+; Exercise 1.5
+
+; Converts an expression into an infix form
+(define (to-infix expr)
+  (cond
+    [(sum? expr) (list
+                  (to-infix (summand-1 expr))
+                  '+
+                  (to-infix (summand-2 expr)))]
+    [(product? expr) (list
+                  (to-infix (multiplier-1 expr))
+                  '*
+                  (to-infix (multiplier-2 expr)))]
+    [else expr]
+    ))
+
+; Exercise 1.6
