@@ -66,3 +66,32 @@
     ))
                         
 ; Exercise 1.3
+
+(define (simplify-at-root expr)
+  (match expr
+    [(list '+ 0 e) e]
+    [(list '+ e 0) e]
+    [(list '* 1 e) e]
+    [(list '* e 1) e]
+    [(list '* 0 e) 0]
+    [(list '* e 0) 0]
+    [(list '+ a b)
+     #:when (and (number? a) (number? b)) (+ a b)]
+    [(list '* a b)
+     #:when (and (number? a) (number? b)) (* a b)]
+    [_ expr]
+    ))
+     
+(define (simplify expr)
+  (cond
+    [(sum? expr) (simplify-at-root(list '+
+                                        (simplify (summand-1 expr))
+                                        (simplify (summand-2 expr))))]
+    [(product? expr) (simplify-at-root(list '*
+                                        (simplify (multiplier-1 expr))
+                                        (simplify (multiplier-2 expr))))]
+    [else expr]
+    ))
+    
+                                   
+
