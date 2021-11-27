@@ -35,7 +35,7 @@ genLine f x g = Line (genList f x) x (genList g x)
 -- (genList f x) generates a list by applying f to x until reaching Nothing to produce 
 genList :: (a -> Maybe a) -> a -> [a]
 genList f x = 
-  case f x of
+  case (f x) of
     Nothing   -> []
     Just result  -> result : (genList f result)
     
@@ -164,14 +164,16 @@ mapSpace func (Space (Line l f r)) = Space (Line newL newF newR)
     newL = map (mapLine func) l
     newF = mapLine func f
     newR = map (mapLine func) r
-    
+
+-- | Zip two spaces
 zipSpaces :: Space a -> Space b -> Space (a, b)
 zipSpaces (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Line newL newF newR))
   where 
     newL = zipWith zipLines l1 l2
     newF = zipLines f1 f2
     newR = zipWith zipLines r1 r2
-   
+
+-- | Zip two spaces with given fucntion
 zipSpacesWith :: (a -> b -> c) -> Space a -> Space b -> Space c
 zipSpacesWith func (Space (Line l1 f1 r1)) (Space (Line l2 f2 r2)) = (Space (Line newL newF newR))
   where 
@@ -195,19 +197,23 @@ conwayRule space = nextState cell (countAliveAround space)
     isAlive :: Cell -> Int
     isAlive Alive = 1
     isAlive Dead = 0
-
+    
+    -- | Counts number of neighbours on given line, considering this line as top or bottom line
+    -- to main point
     numberOfNeighborsOnLine :: Line Cell -> Int
     numberOfNeighborsOnLine (Line [] f []) =  isAlive f 
     numberOfNeighborsOnLine (Line [] f (n:_)) = isAlive f + isAlive n
     numberOfNeighborsOnLine (Line (p:_) f []) = isAlive f + isAlive p
     numberOfNeighborsOnLine (Line (p:_) f (n:_)) = isAlive p + isAlive f + isAlive n
-    
+
+    -- | Counts number of neighbours on given line, considering this line as one with main point
     numberOfNeighborsOnFocusLine :: Line Cell -> Int
     numberOfNeighborsOnFocusLine (Line [] f []) =  0
     numberOfNeighborsOnFocusLine (Line [] f (n:_)) = isAlive n
     numberOfNeighborsOnFocusLine (Line (p:_) f []) = isAlive p
     numberOfNeighborsOnFocusLine (Line (p:_) f (n:_)) = isAlive p + isAlive n    
 
+    -- | Counts all alive neughbors around given point.
     countAliveAround :: Space Cell -> Int
     countAliveAround (Space (Line [] f [])) = numberOfNeighborsOnFocusLine f 
     countAliveAround (Space (Line (top:_) f [])) = numberOfNeighborsOnLine top + numberOfNeighborsOnFocusLine f 
@@ -216,31 +222,37 @@ conwayRule space = nextState cell (countAliveAround space)
 
 
 
-spaceShiftLeft  :: Space a -> Maybe (Space a)
-spaceShiftLeft (Space (Line (x:xs) b c)) = Just (Space (Line xs x (b:c))) 
-spaceShiftLeft (Space (Line [] _ _)) = Nothing
+-- | Shifts space focus up
+spaceShiftUp  :: Space a -> Maybe (Space a)
+spaceShiftUp (Space (Line (x:xs) b c)) = Just (Space (Line xs x (b:c))) 
+spaceShiftUp (Space (Line [] _ _)) = Nothing
 
-spaceShiftRight  :: Space a -> Maybe (Space a)
-spaceShiftRight (Space (Line b c (x:xs))) = Just (Space (Line (c:b) x xs))
-spaceShiftRight (Space (Line _ _ [])) = Nothing
+-- | Shifts space focus down
+spaceShiftDown  :: Space a -> Maybe (Space a)
+spaceShiftDown (Space (Line b c (x:xs))) = Just (Space (Line (c:b) x xs))
+spaceShiftDown (Space (Line _ _ [])) = Nothing
 
+-- | Shifts space focus up
 spaceLineShift :: Space a -> Line (Space a)
-spaceLineShift (Space (Line l f r)) = (Line left focus right)
+spaceLineShift (Space (Line l f r)) = Line left focus right
   where
-    leftShifts = genList shiftLeft f
-    rightShifts = genList shiftRight f
-    left = map (\shift -> Space(Line l shift r)) leftShifts
-    focus = Space(Line l f r)
-    right = map (\shift -> Space(Line l shift r)) rightShifts
+    -- приходит спейс,берем фокус 
+    -- в фокусе находим все комбинации
+    -- возвращаем линию из всех комбинаций + л + р
+    (Line leftComb focusComb rightComb) = lineShifts f
+    -- все комбинации фокуса
+    left = map (\comb -> Space (Line l comb r)) leftComb
+    focus = Space(Line l focusComb r)
+    right = map (\comb -> Space(Line l comb r)) rightComb
 
 spaceShifts :: Space a -> Space (Space a)
 spaceShifts space = Space (Line l f r)
   where
-    leftShift = genList spaceShiftLeft space
-    rightShift = genList spaceShiftRight space
-    l = map (\sp -> spaceLineShift sp) leftShift
+    upperShift = genList spaceShiftUp space
+    downShift = genList spaceShiftDown space
+    l = map (\sp -> spaceLineShift sp) upperShift
     f = spaceLineShift space
-    r = map (\sp -> spaceLineShift sp) rightShift
+    r = map (\sp -> spaceLineShift sp) downShift
     
 applyConwayRule :: Space Cell -> Space Cell
 applyConwayRule space = mapSpace conwayRule (spaceShifts space)
@@ -295,7 +307,7 @@ startState :: Int -> Line Cell
 startState n = Line (replicate n Dead) Alive (replicate n Dead)
 
 startRule30 :: IO()
-startRule30 = drawingOf (renderRule30 500 (startState 500) )
+startRule30 = drawingOf (renderRule30 50 (startState 50) )
 
 main :: IO()
 main = do
@@ -309,18 +321,14 @@ main = do
   print("Task 1.4:")
   print(zipLines integers integers)
   print(zipLinesWith (*) integers integers)
+  -- task 1.6
+  print("Task 1.6:")
+  print(shiftRight integers)
+  -- task 1.7
+  print("Task 1.7:") 
+  print(lineShifts integers)
   -- task 1.8
-  startRule30
+  --startRule30
+  -- task 1.14
+  animateConway startConway
   
---print(shiftRight integers)
---  print(lineShifts integers)
---    print(productOfLines integers integers)
-  --print(zipSpaces (productOfLines integers integers2) (productOfLines integers2 integers))
---
-
---animateConway startConway
---drawingOf (renderRule30 500 (startState 500) )
-    --print(test integers integers)
---print(applyRule30 (Line (deadCellsList 10) Alive (deadCellsList 10)))
-  --print(integers)
---    print("Hello")
