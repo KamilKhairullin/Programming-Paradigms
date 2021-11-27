@@ -59,6 +59,15 @@
                                  (multiplier-1 expr)
                                  (derivative (multiplier-2 expr) wrt))
                                  )]
+    [(exponentiation? expr)
+     (let ([base (exp-base expr)]
+           [index (exp-index expr)])
+     (cond
+       [(variable? base)  ('* index ('^ base (- index 1))]
+       [(number? base) '* ('^ base index) (log base)]
+       [else expr]
+       ))]
+    
     [(variable? expr) (cond
                         [(equal? expr wrt) 1]
                         [else 0])]
@@ -116,3 +125,70 @@
     ))
 
 ; Exercise 1.6
+
+
+; Check whether a given expression is an exponentiation 
+(define (exponentiation? expr)
+  (match expr
+    [(list '^ _ _) #t]
+    [_ #f]
+    ))
+
+; extract base from an exponentiation
+(define (exp-base expr)
+  (match expr
+    [(list '^ a _) a]))
+
+
+; extract index from an exponentiation
+(define (exp-index expr)
+  (match expr
+    [(list '^ _ a) a]))
+
+; Check whether a given expression is a sin 
+(define (sin? expr)
+  (match expr
+    [(list 'sin _ ) #t]
+    [_ #f]
+    ))
+
+; extract argument from a sin
+(define (sin-arg expr)
+  (match expr
+    [(list 'sin a) a]))
+
+; Check whether a given expression is a cos 
+(define (cos? expr)
+  (match expr
+    [(list 'cos _ ) #t]
+    [_ #f]
+    ))
+
+; extract argument from a cos
+(define (cos-arg expr)
+  (match expr
+    [(list 'cos a) a]))
+
+; Check whether a given expression is a tan 
+(define (tan? expr)
+  (match expr
+    [(list 'tan _ ) #t]
+    [_ #f]
+    ))
+
+; extract argument from a cos
+(define (tan-arg expr)
+  (match expr
+    [(list 'tan a) a]))
+
+; Check whether a given expression is a tan 
+(define (log? expr)
+  (match expr
+    [(list 'log _ ) #t]
+    [_ #f]
+    ))
+
+; extract argument from a cos
+(define (log-arg expr)
+  (match expr
+    [(list 'log a) a]))
