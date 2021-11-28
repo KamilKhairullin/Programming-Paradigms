@@ -63,10 +63,37 @@
      (let ([base (exp-base expr)]
            [index (exp-index expr)])
      (cond
-       [(variable? base)  ('* index ('^ base (- index 1))]
-       [(number? base) '* ('^ base index) (log base)]
-       [else expr]
+       [(number? base) (list '*
+                             (derivative index wrt)
+                             (list '* expr (list 'log base)))]
+       [(variable? base) (list '*
+                               (derivative base wrt)
+                               (list '* index (list '^ base (- index 1))))]
+       [else (list '*
+                   (derivative index wrt)
+                   expr)]
        ))]
+
+    [(sin? expr) (list '*
+                       (derivative (sin-arg expr) wrt)
+                       (list 'cos (sin-arg expr))
+                       )]
+
+    [(cos? expr) (list '*
+                       (derivative (cos-arg expr) wrt)                       
+                       (list '* (- 0 1) (list 'sin (cos-arg expr)))
+                       )]
+        
+    
+    [(tan? expr) (list '*
+                       (derivative (tan-arg expr) wrt)
+                       (list '^ (list 'cos (tan-arg expr)) (- 0 2))
+                       )]
+
+    [(log? expr) (list '*
+                       (derivative (log-arg expr) wrt)
+                       (list '^ (log-arg expr) (- 0 1))
+                       )]
     
     [(variable? expr) (cond
                         [(equal? expr wrt) 1]
@@ -88,6 +115,14 @@
      #:when (and (number? a) (number? b)) (+ a b)]
     [(list '* a b)
      #:when (and (number? a) (number? b)) (* a b)]
+    [(list '^ e 1) e]
+    [(list '^ 1 e) 1]
+    [(list 'sin 0) 0]
+    [(list 'cos 0) 1]
+    [(list 'tan 0) 0]
+    [(list 'sin 90) 1]
+    [(list 'cos 90) 0]
+    [(list 'log 'e) 1]
     [_ expr]
     ))
      
