@@ -312,4 +312,13 @@
              [(variable? elem) (cons (list elem) lst)]
              [(and (list? elem) (> (length elem) 2)) (cons (list (variables-of elem)) lst)]
              [else lst]))
-         '() (rest expr))))) 
+         '() (rest expr)))))
+
+
+; Exercise 1.9
+
+; Returns a gradient of a multivariable expression
+(define (gradient expr variables)
+  (map (lambda (x)
+         (simplify (derivative expr x)))
+   variables))
