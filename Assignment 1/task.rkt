@@ -73,7 +73,23 @@
                    (derivative index wrt)
                    expr)]
        ))]
-
+ 
+    [(polyvariadic-sum? expr) (cons '+
+                                    (map (lambda (x)
+                                           (derivative x wrt))
+                                    (rest expr))
+                                 )]
+    
+    [(polyvariadic-product? expr) (cons '+
+                                    (map (lambda (x)
+                                           (cons '*
+                                                 (cons 
+                                                 (derivative x wrt)
+                                                 (remove x (rest expr)))
+                                                 ))
+                                    (rest expr))
+                                 )]
+    
     [(sin? expr) (list '*
                        (derivative (sin-arg expr) wrt)
                        (list 'cos (sin-arg expr))
@@ -123,7 +139,28 @@
     [(list 'sin 90) 1]
     [(list 'cos 90) 0]
     [(list 'log 'e) 1]
-    [_ expr]
+    [_
+     (cond
+       [(polyvariadic-sum? expr) (cons '+
+                                       (cons
+                                       (foldr
+                                        (lambda (input sum)
+                                          (cond
+                                            [(number? input) (+ sum input)]
+                                            [else sum]
+                                            ))
+                                        0 (rest expr))
+
+                                       (map (lambda (x)
+                                                    (cond
+                                                      [(number? x) '_]
+                                                      [else x]
+                                                      ))
+                                                  (rest expr))
+                                             
+                                       ))]
+       [else expr]
+      )]
     ))
      
 (define (simplify expr)
@@ -134,6 +171,16 @@
     [(product? expr) (simplify-at-root(list '*
                                         (simplify (multiplier-1 expr))
                                         (simplify (multiplier-2 expr))))]
+    [(polyvariadic-sum? expr)  (simplify-at-root(cons '+
+                                                      (map (lambda (x)
+                                                             (simplify x))
+                                                           (rest expr))
+                                 ))]
+    [(polyvariadic-product? expr)  (simplify-at-root(cons '*
+                                                          (map (lambda (x)
+                                                                 (simplify x))
+                                                               (rest expr))
+                                     ))]
     [else expr]
     ))
     
@@ -227,3 +274,17 @@
 (define (log-arg expr)
   (match expr
     [(list 'log a) a]))
+
+; Exercise 1.7
+
+(define (polyvariadic-sum? expr)
+  (cond 
+    [(and (list? expr) (> (length expr) 3 ) (equal? (first expr) '+)) #t]
+    [else #f]
+    ))
+
+(define (polyvariadic-product? expr)
+    (cond 
+    [(and (list? expr) (> (length expr) 3 ) (equal? (first expr) '*)) #t]
+    [else #f]
+    ))
