@@ -141,24 +141,27 @@
     [(list 'log 'e) 1]
     [_
      (cond
-       [(polyvariadic-sum? expr) (cons '+
-                                       (cons
-                                       (foldr
-                                        (lambda (input sum)
-                                          (cond
-                                            [(number? input) (+ sum input)]
-                                            [else sum]
-                                            ))
-                                        0 (rest expr))
-
-                                       (map (lambda (x)
-                                                    (cond
-                                                      [(number? x) '_]
-                                                      [else x]
-                                                      ))
-                                                  (rest expr))
-                                             
-                                       ))]
+       [(polyvariadic-sum? expr) (let
+                                     ([sum (foldr + 0 (filter number? (rest expr)))])
+                                   (cons '+
+                                         (cond
+                                           [(equal? sum 0) (filter-not number? (rest expr))]
+                                           [else (cons
+                                                  sum
+                                                  (filter-not number? (rest expr))
+                                                  )])))]
+       [(polyvariadic-product? expr) (let
+                                     ([mul (foldr * 1 (filter number? (rest expr)))])
+                                   (cond
+                                     [(equal? mul 0) null]
+                                     [else (cons '*
+                                                 (cons
+                                                  mul
+                                                  (filter-not number? (rest expr)))
+                                                 )]
+                                     ))]
+                                            
+                                   
        [else expr]
       )]
     ))
