@@ -142,22 +142,27 @@
     [_
      (cond
        [(polyvariadic-sum? expr) (let
-                                     ([sum (foldr + 0 (filter number? (rest expr)))])
-                                   (cons '+
+                                     ([sum (foldr + 0 (filter number? (rest expr)))]
+                                      [filteredList (filter-not empty? (filter-not number? (rest expr)))])
                                          (cond
-                                           [(equal? sum 0) (filter-not number? (rest expr))]
-                                           [else (cons
+                                           [(and (equal? sum 0) (equal? (length filteredList) 1)) filteredList]
+                                           [(equal? sum 0) (cons '+ filteredList)]
+                                           [else (cons '+ (cons
                                                   sum
-                                                  (filter-not number? (rest expr))
-                                                  )])))]
+                                                  filteredList
+                                                  ))]))]
        [(polyvariadic-product? expr) (let
-                                     ([mul (foldr * 1 (filter number? (rest expr)))])
+                                     ([mul (foldr * 1 (filter number? (rest expr)))]
+                                      [filteredList (filter-not empty? (filter-not number? (rest expr)))])
                                    (cond
                                      [(equal? mul 0) null]
+                                     [(equal? mul 1) (cons '*
+                                                  filteredList
+                                                 )]
                                      [else (cons '*
                                                  (cons
                                                   mul
-                                                  (filter-not number? (rest expr)))
+                                                  filteredList)
                                                  )]
                                      ))]
                                             
