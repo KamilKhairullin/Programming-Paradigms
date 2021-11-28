@@ -3,7 +3,7 @@
 ; Exercise 1.1
 ; check whether a given expression is a variable
 (define (variable? expr)
-  (not (procedure? expr))
+  (and (not (procedure? expr)) (not (number? expr)) (not (sum? expr)) (not (product? expr)) (not (polyvariadic-sum? expr)) (not (polyvariadic-product? expr)))
   )
 
 ; Check whether a given expression is a sum
@@ -296,3 +296,20 @@
     [(and (list? expr) (> (length expr) 3 ) (equal? (first expr) '*)) #t]
     [else #f]
     ))
+
+
+; Exercise 1.8
+
+(define (flatten lst)
+  (cond ((null? lst) '())
+        ((pair? lst)
+         (append (flatten (car lst)) (flatten (cdr lst))))
+        (else (list lst))))
+
+(define (variables-of expr)
+  (remove-duplicates(flatten (foldr (lambda (elem lst)
+           (cond 
+             [(variable? elem) (cons (list elem) lst)]
+             [(and (list? elem) (> (length elem) 2)) (cons (list (variables-of elem)) lst)]
+             [else lst]))
+         '() (rest expr))))) 
