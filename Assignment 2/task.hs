@@ -23,14 +23,21 @@ integers2 = Line [-10, -9] (-8) [-7, -6]
 cutLine :: Int -> Line a -> Line a
 cutLine n (Line l f r) = Line (take n l) f (take n r)
 
-
 -- | Generate a line by using generating functions.
 -- (genLine f x g) generates a line with x in its focus,
 -- then it applies f to x until reaching Nothing to produce -- a list of elements to the left of x,
 -- and, similarly, applies g to x until reaching Nothing to -- produce a list of elements to the right of x.
 genLine :: (a -> Maybe a) -> a -> (a -> Maybe a) -> Line a
 genLine f x g = Line (genList f x) x (genList g x)
-
+ 
+-- | An entire line of different focus shifts for given Line
+-- lineShifts integers = Line [Line [] (-2) [-1,0,1,2],Line [-2] (-1) [0,1,2]] (Line [-1,-2] 0 [1,2]) [Line [0,-1,-2] 1 [2],Line [1,0,-1,-2] 2 []]
+lineShifts :: Line a -> Line (Line a)
+lineShifts line = Line leftShift line rightShift
+  where
+    leftShift = genList shiftLeft line
+    rightShift = genList shiftRight line
+    
 -- | Generate a list by using generating function.
 -- (genList f x) generates a list by applying f to x until reaching Nothing to produce 
 genList :: (a -> Maybe a) -> a -> [a]
@@ -38,7 +45,6 @@ genList f x =
   case (f x) of
     Nothing   -> []
     Just result  -> result : (genList f result)
-    
     
 -- | Apply a function to all elements on a line.
 -- mapLine (^2) integers = Line [1, 4, 9, ..] 0 [1, 4, 9, ..] 
@@ -50,6 +56,12 @@ mapLine f (Line a b c) = Line (map f a) (f b) (map f c)
 -- = Line [(-1,-1),(-2,-2),..] (0,0) [(1,1),(2,2),..] 
 zipLines :: Line a -> Line b -> Line (a, b)
 zipLines (Line a b c) (Line d e f) = Line (zip a d) (b, e) (zip c f)
+
+-- | Zip together two lines.
+-- zipLines integers integers
+-- = Line [(-1,-1),(-2,-2),..] (0,0) [(1,1),(2,2),..] 
+zipThreeLines :: Line a -> Line b -> Line c -> Line (a, b, c)
+zipThreeLines (Line a b c) (Line d e f) (Line g h i)= Line (zip3 a d g) (b, e, h) (zip3 c f i)
 
 -- | Zip together two lines with a given combining function. 
 -- zipLinesWith (*) integers integers
@@ -91,16 +103,6 @@ shiftLeft (Line [] _ _) = Nothing
 shiftRight  :: Line a -> Maybe (Line a)
 shiftRight (Line b c (x:xs)) = Just (Line (c:b) x xs)
 shiftRight (Line _ _ []) = Nothing
-
-
--- | An entire line of different focus shifts for given Line
--- lineShifts integers = Line [Line [] (-2) [-1,0,1,2],Line [-2] (-1) [0,1,2]] (Line [-1,-2] 0 [1,2]) [Line [0,-1,-2] 1 [2],Line [1,0,-1,-2] 2 []]
-lineShifts :: Line a -> Line (Line a)
-lineShifts line = Line leftShift line rightShift
-  where
-    leftShift = genList shiftLeft line
-    rightShift = genList shiftRight line
-
 
 -- | Applies rule30 to each cell of line
 applyRule30 :: Line Cell -> Line Cell
@@ -220,40 +222,56 @@ conwayRule space = nextState cell (countAliveAround space)
     countAliveAround (Space (Line [] f (bot:_))) = numberOfNeighborsOnLine bot + numberOfNeighborsOnFocusLine f 
     countAliveAround (Space (Line (top:_) f (bot:_))) =  numberOfNeighborsOnLine bot + numberOfNeighborsOnFocusLine f + numberOfNeighborsOnLine top
 
+    
+spaceHorizontalShifts :: Space a -> Line (Space a)
 
-
--- | Shifts space focus up
-spaceShiftUp  :: Space a -> Maybe (Space a)
-spaceShiftUp (Space (Line (x:xs) b c)) = Just (Space (Line xs x (b:c))) 
-spaceShiftUp (Space (Line [] _ _)) = Nothing
-
--- | Shifts space focus down
-spaceShiftDown  :: Space a -> Maybe (Space a)
-spaceShiftDown (Space (Line b c (x:xs))) = Just (Space (Line (c:b) x xs))
-spaceShiftDown (Space (Line _ _ [])) = Nothing
-
--- | Shifts space focus up
-spaceLineShift :: Space a -> Line (Space a)
-spaceLineShift (Space (Line l f r)) = Line left focus right
+spaceHorizontalShifts (Space (Line (l:ls) f (r:rs))) = (Line left focus right)
   where
-    -- приходит спейс,берем фокус 
-    -- в фокусе находим все комбинации
-    -- возвращаем линию из всех комбинаций + л + р
-    (Line leftComb focusComb rightComb) = lineShifts f
-    -- все комбинации фокуса
-    left = map (\comb -> Space (Line l comb r)) leftComb
-    focus = Space(Line l focusComb r)
-    right = map (\comb -> Space(Line l comb r)) rightComb
+    (Line leftCombTriple focusCombTriple rightCombTriple) = zipThreeLines (lineShifts l) (lineShifts f) (lineShifts r)
+    left = map (\(a, b, c) -> Space (Line (a:ls) b (c:rs))) leftCombTriple
+    focus = (\(a, b, c) -> Space (Line (a:ls) b (c:rs))) focusCombTriple
+    right = map (\(a, b, c) -> Space (Line (a:ls) b (c:rs))) rightCombTriple
+   
+spaceHorizontalShifts (Space (Line [] f (r:rs))) = (Line left focus right)
+  where
+    (Line leftCombTriple focusCombTriple rightCombTriple) = zipLines (lineShifts f) (lineShifts r)
+    left = map (\(b, c) -> Space (Line [] b (c:rs))) leftCombTriple
+    focus = (\(b, c) -> Space (Line [] b (c:rs))) focusCombTriple
+    right = map (\(b, c) -> Space (Line [] b (c:rs))) rightCombTriple
+
+spaceHorizontalShifts (Space (Line (l:ls) f [])) = (Line left focus right)
+  where
+    (Line leftCombTriple focusCombTriple rightCombTriple) = zipLines (lineShifts l) (lineShifts f) 
+    left = map (\(a, b) -> Space (Line (a:ls) b [])) leftCombTriple
+    focus = (\(a, b) -> Space (Line (a:ls) b [])) focusCombTriple
+    right = map (\(a, b) -> Space (Line (a:ls) b [])) rightCombTriple
 
 spaceShifts :: Space a -> Space (Space a)
-spaceShifts space = Space (Line l f r)
+spaceShifts (Space(line)) = Space (Line u f d)
   where
-    upperShift = genList spaceShiftUp space
-    downShift = genList spaceShiftDown space
-    l = map (\sp -> spaceLineShift sp) upperShift
-    f = spaceLineShift space
-    r = map (\sp -> spaceLineShift sp) downShift
+    (Line upper focus down) = lineShifts line
     
+    u = map (\sp -> spaceHorizontalShifts (Space (sp))) upper
+    f = spaceHorizontalShifts (Space (focus))
+    d = map (\sp -> spaceHorizontalShifts (Space(sp))) down
+
+shiftLinesToGivenFocus :: Line a -> [Line a] -> [Line a]
+shiftLinesToGivenFocus givenLine linesToMoveFocusIn = linesToMoveFocusIn
+  where
+    answer = map (\line -> shiftLineToGivenFocus givenLine line) linesToMoveFocusIn
+
+shiftLineToGivenFocus :: Line a -> Line a -> Line a
+shiftLineToGivenFocus givenLine lineToChange
+  | (length givenL) > (length (l:ls)) = shiftLineToGivenFocus givenLine shiftedRight
+  | (length givenL) < (length (l:ls)) = shiftLineToGivenFocus givenLine shiftedLeft
+  | otherwise = lineToChange
+  where
+    shiftedRight = (Line (f:(l:ls)) r rs)
+    shiftedLeft = (Line ls l (f:(r:rs)))
+    (Line (l:ls) f (r:rs)) = lineToChange
+    (Line givenL givenFocus givenR) = givenLine
+    
+
 applyConwayRule :: Space Cell -> Space Cell
 applyConwayRule space = mapSpace conwayRule (spaceShifts space)
 
@@ -265,7 +283,7 @@ renderArrayOfLines (x:xs) = (renderLine x) <> translated 0 (-1) (renderArrayOfLi
 renderSpace :: Space Picture -> Picture
 renderSpace (Space (Line l f r)) = picture
   where 
-    picture = renderArrayOfLines l <> translated 0 (-1) (renderLine f) <> renderArrayOfLines r
+    picture = renderArrayOfLines (reverse l) <> translated 0 (-9) (renderLine f) <> translated 0 (-10) (renderArrayOfLines r)
 
 spaceCellToPicture :: Space Cell -> Space Picture
 spaceCellToPicture space = mapSpace (\x -> cellToPicture x) space
@@ -286,22 +304,17 @@ animateConway space = animationOf gameOfLife
     gameOfLife time = renderSpace(spaceCellToPicture(getCurrentState (floor time) space))
 
 startConwayLine1 :: Line Cell
-startConwayLine1 = Line (Alive : replicate 10 Dead) Alive (replicate 11 Dead)
+startConwayLine1 = Line (replicate 9 Dead) Alive (replicate 9 Dead)
 
 startConwayLine2 :: Line Cell
-startConwayLine2 = Line ((replicate 11 Dead)) Alive (Alive : replicate 11 Dead)
-
+startConwayLine2 = Line (Alive: replicate 8 Dead) Alive (Alive : replicate 8 Dead)
 
 startConwayLine3 :: Line Cell
-startConwayLine3 = Line (Alive : (replicate 10 Dead)) Alive (Alive : replicate 10 Dead)
-
-startConwayLine4 :: Line Cell
-startConwayLine4 = Line (replicate 11 Dead) Dead (replicate 11 Dead)
-
-
+startConwayLine3 = Line (replicate 9 Dead) Dead (replicate 9 Dead)
 
 startConway :: Space Cell
-startConway = (Space (Line (startConwayLine1 : (replicate 10 startConwayLine4)) startConwayLine2 (startConwayLine3 : (replicate 10 startConwayLine4))))
+startConway = (Space (Line (replicate 9 startConwayLine3) startConwayLine1 (startConwayLine2 : (replicate 8 startConwayLine3))))
+--startConway = (Space (Line (startConwayLine1 : (replicate 10 startConwayLine4)) startConwayLine2 (startConwayLine3 : (replicate 10 startConwayLine4))))
 
 startState :: Int -> Line Cell
 startState n = Line (replicate n Dead) Alive (replicate n Dead)
@@ -311,24 +324,10 @@ startRule30 = drawingOf (renderRule30 50 (startState 50) )
 
 main :: IO()
 main = do
-  -- task 1.1
-  print("Task 1.1") 
-  print(cutLine 3 integers)
-  -- task 1.3 
-  print("Task 1.3:")
-  print(mapLine (^2) integers)
-  -- task 1.4
-  print("Task 1.4:")
-  print(zipLines integers integers)
-  print(zipLinesWith (*) integers integers)
-  -- task 1.6
-  print("Task 1.6:")
-  print(shiftRight integers)
-  -- task 1.7
-  print("Task 1.7:") 
-  print(lineShifts integers)
+
   -- task 1.8
   --startRule30
   -- task 1.14
+  --print(spaceShifts startConway)
+  --print(zipThreeLines integers integers integers)
   animateConway startConway
-  
